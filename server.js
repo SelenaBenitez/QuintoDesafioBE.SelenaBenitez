@@ -1,0 +1,83 @@
+const express = require('express');
+const app = express();
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
+const handlebars = require('express-handlebars');
+
+// Configurar el motor de plantillas Handlebars
+app.set('view engine', 'handlebars');
+
+// Configurar el directorio de vistas
+app.set('views', __dirname + '/views');
+
+// Configurar la ruta estática para los archivos públicos
+app.use(express.static('public'));
+
+// Configurar Handlebars como motor de plantillas
+app.engine('handlebars', handlebars());
+
+// Array para almacenar los productos
+let products = [];
+
+// Configurar eventos de conexión y desconexión de websockets
+io.on('connection', (socket) => {
+  console.log('Nuevo cliente conectado');
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado');
+  });
+
+  // Escuchar evento de creación de producto
+  socket.on('createProduct', (product) => {
+    // Lógica para crear el producto
+    const newProduct = { ...product, id: generateId() };
+    products.push(newProduct);
+    // Emitir evento de actualización de productos a todos los clientes conectados
+    io.emit('updateProducts', products);
+  });
+
+  // Escuchar evento de eliminación de producto
+  socket.on('deleteProduct', (productId) => {
+    // Lógica para eliminar el producto
+    products = products.filter((product) => product.id !== productId);
+    // Emitir evento de actualización de productos a todos los clientes conectados
+    io.emit('updateProducts', products);
+  });
+});
+
+// Ruta para la vista home
+app.get('/', (req, res) => {
+  res.render('home', { products });
+});
+
+// Ruta para la vista realTimeProducts
+app.get('/realtimeproducts', (req, res) => {
+  res.render('realTimeProducts', { products });
+});
+
+// Ruta para la creación de producto desde HTTP
+app.post('/products', (req, res) => {
+  const { name, price } = req.body;
+  const newProduct = { name, price, id: generateId() };
+  products.push(newProduct);
+  io.emit('updateProducts', products);
+  res.redirect('/realtimeproducts');
+});
+
+// Ruta para la eliminación de producto desde HTTP
+app.delete('/products/:id', (req, res) => {
+  const productId = req.params.id;
+  products = products.filter((product) => product.id !== productId);
+  io.emit('updateProducts', products);
+  res.redirect('/realtimeproducts');
+});
+
+// Generar un ID único para los productos
+function generateId() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+// Iniciar el servidor en el puerto 3000
+server.listen(3000, () => {
+  console.log('Servidor iniciado en http://localhost:3000');
+});
