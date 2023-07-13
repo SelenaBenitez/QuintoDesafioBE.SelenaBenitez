@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat en tiempo real</title>
+  <style>
+    /* Estilos CSS para el chat */
+    .chat-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .chat-messages {
+      max-height: 300px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    .chat-message {
+      margin-bottom: 10px;
+    }
+
+    .chat-message span {
+      font-weight: bold;
+    }
+
+    .chat-input {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <h1>Chat en tiempo real</h1>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="Escribe un mensaje..." />
+      <button id="sendMessageBtn">Enviar</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.1/socket.io.js"></script>
+  <script>
+    // Conectar al servidor de Socket.IO
+    const socket = io();
+
+    // Obtener referencias a los elementos del DOM
+    const chatMessages = document.getElementById('chatMessages');
+    const messageInput = document.getElementById('messageInput');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+    // Escuchar evento de actualización de mensajes
+    socket.on('updateMessages', (messages) => {
+      displayMessages(messages);
+    });
+
+    // Escuchar evento de recepción de nuevo mensaje
+    socket.on('newMessage', (message) => {
+      displayMessage(message);
+    });
+
+    // Enviar un nuevo mensaje al servidor
+    sendMessageBtn.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      if (message !== '') {
+        socket.emit('sendMessage', message);
+        messageInput.value = '';
+      }
+    });
+
+    // Mostrar los mensajes en el chat
+    function displayMessages(messages) {
+      chatMessages.innerHTML = '';
+      messages.forEach((message) => {
+        displayMessage(message);
+      });
+    }
+
+    // Mostrar un mensaje en el chat
+    function displayMessage(message) {
+      const messageElement = document.createElement('div');
+      messageElement.className = 'chat-message';
+      messageElement.innerHTML = `<span>${message.sender}</span>: ${message.text}`;
+      chatMessages.appendChild(messageElement);
+    }
+  </script>
+</body>
+</html>
