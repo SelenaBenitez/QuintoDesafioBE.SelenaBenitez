@@ -1,14 +1,17 @@
+<!-- src/views/home.handlebars -->
 <!DOCTYPE html>
 <html>
 <head>
   <title>Home</title>
 </head>
 <body>
-  <h1>Lista de productos</h1>
-  <ul>
-    {{#each products}}
-    <li>{{this.name}}</li>
-    {{/each}}
-  </ul>
+  <h1>Bienvenido a la página principal</h1>
+  {{#if user}}
+  <p>Hola, {{user.first_name}} {{user.last_name}} ({{user.email}})</p>
+  <a href="/auth/logout">Cerrar sesión</a>
+  {{else}}
+  <p>Inicia sesión para ver tus datos</p>
+  <a href="/auth/login">Iniciar sesión</a>
+  {{/if}}
 </body>
 </html>

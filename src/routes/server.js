@@ -1,5 +1,6 @@
 import express from 'express';
 import userRouter from './routes/users.router.js';
+import authRouter from './routes/auth.router.js';
 import mongoose from 'mongoose';
 import http from 'http';
 import socketIO from 'socket.io';
@@ -16,6 +17,10 @@ app.set('views', __dirname + '/views');
 
 // Configurar la ruta estática para los archivos públicos
 app.use(express.static('public'));
+
+// Configurar el middleware para procesar el cuerpo de las solicitudes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Array para almacenar los productos
 let products = [];
@@ -81,6 +86,12 @@ function generateId() {
   );
 }
 
+// Configurar las rutas de usuarios
+app.use('/api/users', userRouter);
+
+// Configurar las rutas de autenticación
+app.use('/api/auth', authRouter);
+
 // Iniciar el servidor en el puerto 3000
 const PORT = 3000;
 server.listen(PORT, () => {
@@ -89,10 +100,11 @@ server.listen(PORT, () => {
 
 // Configurar la conexión a la base de datos de MongoDB
 const MONGODB_URI =
-  'mongodb://localhost:27017/ecommongodb+srv://selenabenitez0201:Monedas1@selenabenitezcluster.xhlcgdr.mongodb.net/?retryWrites=true&w=majoritymerce';
-mongoose.connect(MONGODB_URI, (error) => {
-  if (error) {
-    console.log('Cannot connect to database: ' + error);
-    process.exit();
-  }
-});
+  'mongodb://localhost:27017/ecommmerce';
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log('Conectado a la base de datos');
+  })
+  .catch((error) => {
+    console.log('Error al conectar a la base de datos:', error);
+  });
