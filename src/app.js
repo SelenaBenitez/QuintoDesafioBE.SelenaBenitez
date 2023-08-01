@@ -15,7 +15,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// ... (resto del código)
 
 // Estrategia de inicio de sesión local con Passport
 passport.use('login', new LocalStrategy({
