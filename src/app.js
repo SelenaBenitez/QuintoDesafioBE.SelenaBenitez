@@ -15,19 +15,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// Configurar el motor de plantillas Handlebars
-app.engine('handlebars', handlebars());
-app.set('view engine', 'handlebars');
-app.set('views', __dirname + '/src/views');
-
-// Configurar la ruta estática para los archivos públicos
-app.use(express.static('public'));
-
-// Configurar el middleware para procesar el cuerpo de las solicitudes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Configurar Passport y las estrategias de autenticación
+// ... (resto del código)
 
 // Estrategia de inicio de sesión local con Passport
 passport.use('login', new LocalStrategy({
@@ -41,7 +29,7 @@ passport.use('login', new LocalStrategy({
       return done(null, false, { message: 'Usuario no encontrado' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
       return done(null, false, { message: 'Contraseña incorrecta' });
@@ -52,6 +40,8 @@ passport.use('login', new LocalStrategy({
     return done(error);
   }
 }));
+
+
 
 // Estrategia de inicio de sesión con GitHub con Passport
 passport.use('github', new GitHubStrategy({

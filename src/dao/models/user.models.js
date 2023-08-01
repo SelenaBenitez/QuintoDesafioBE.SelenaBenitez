@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 // src/dao/models/user.model.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-=======
-import mongoose from 'mongoose';
->>>>>>> 65e94491e06e2214180c8b49c15cb29fd3fb05db
 
 const userSchema = new mongoose.Schema({
   first_name: String,
@@ -12,14 +8,16 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     unique: true
-<<<<<<< HEAD
   },
-  passwordHash: String
+  age: Number,
+  password: String,
+  cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
+  role: { type: String, default: 'user' }
 });
 
 userSchema.pre('save', async function (next) {
-  if (this.isModified('passwordHash')) {
-    this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
   }
   next();
 });
@@ -27,9 +25,3 @@ userSchema.pre('save', async function (next) {
 const UserModel = mongoose.model('User', userSchema);
 
 export default UserModel;
-=======
-  }
-});
-
-export const userModel = mongoose.model('User', userSchema);
->>>>>>> 65e94491e06e2214180c8b49c15cb29fd3fb05db

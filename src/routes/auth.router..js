@@ -1,25 +1,28 @@
 // src/routes/auth.router.js
 import { Router } from 'express';
 import passport from 'passport';
-import { UserModel } from '../dao/models/user.model.js';
+import { userModel } from '../dao/models/user.model.js';
 import LocalStrategy from 'passport-local';
 import GitHubStrategy from 'passport-github2'; // Requiere instalar el paquete 'passport-github2'
+import bcrypt from 'bcrypt';
 
 const router = Router();
 
-// Configurar la estrategia de inicio de sesión local con Passport
+// ... (resto del código)
+
+// Estrategia de inicio de sesión local con Passport
 passport.use('login', new LocalStrategy({
   usernameField: 'email',
   passwordField: 'password'
 }, async (email, password, done) => {
   try {
-    const user = await UserModel.findOne({ email });
+    const user = await userModel.findOne({ email });
 
     if (!user) {
       return done(null, false, { message: 'Usuario no encontrado' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
       return done(null, false, { message: 'Contraseña incorrecta' });
@@ -30,6 +33,8 @@ passport.use('login', new LocalStrategy({
     return done(error);
   }
 }));
+
+
 
 // Configurar la estrategia de inicio de sesión con GitHub con Passport
 passport.use('github', new GitHubStrategy({
@@ -48,7 +53,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await UserModel.findById(id);
+    const user = await userModel.findById(id);
     done(null, user);
   } catch (error) {
     done(error);
