@@ -1,6 +1,4 @@
-// app.js
 import express from 'express';
-import mongoose from 'mongoose';
 import passport from 'passport';
 import LocalStrategy from 'passport-local';
 import GitHubStrategy from 'passport-github2';
@@ -9,44 +7,47 @@ import http from 'http';
 import socketIO from 'socket.io';
 import handlebars from 'express-handlebars';
 import bcrypt from 'bcrypt';
-import { userModel } from './src/dao/models/user.model.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJSDoc from 'swagger-jsdoc';
+
+// Importar el logger
+import { developmentLogger, productionLogger } from './logger.js';
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
+// Configuración de Swagger
+const swaggerOptions = {
+  swaggerDefinition: {
+    info: {
+      title: 'Your API',
+      version: '1.0.0',
+      description: 'Your API description',
+    },
+    basePath: '/',
+  },
+  apis: ['path-to-your-routes-file.js'], // Reemplaza con la ruta a tus archivos de rutas
+};
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Estrategia de inicio de sesión local con Passport
 passport.use('login', new LocalStrategy({
   usernameField: 'email',
   passwordField: 'password'
 }, async (email, password, done) => {
-  try {
-    const user = await userModel.findOne({ email });
-
-    if (!user) {
-      return done(null, false, { message: 'Usuario no encontrado' });
-    }
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-
-    if (!isValidPassword) {
-      return done(null, false, { message: 'Contraseña incorrecta' });
-    }
-
-    return done(null, user);
-  } catch (error) {
-    return done(error);
-  }
+  // Lógica para la autenticación local
+  // ...
 }));
-
-
 
 // Estrategia de inicio de sesión con GitHub con Passport
 passport.use('github', new GitHubStrategy({
-  clientID: 'e1bd7ccee89663c64321', 
-  clientSecret: '03e24b4967f3cfe1a8b0496933a53dab83d18ac8', 
-  callbackURL: 'http://localhost:3000/auth/github/callback' // Ruta para el callback de GitHub
+  clientID: 'e1bd7ccee89663c64321',
+  clientSecret: '03e24b4967f3cfe1a8b0496933a53dab83d18ac8',
+  callbackURL: 'http://localhost:3000/auth/github/callback'
 }, (accessToken, refreshToken, profile, done) => {
   // Lógica para manejar la autenticación con GitHub
   // ...
@@ -58,17 +59,13 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await userModel.findById(id);
-    done(null, user);
-  } catch (error) {
-    done(error);
-  }
+  // Lógica para deserializar el usuario
+  // ...
 });
 
 // Configurar sesión de usuario con Passport
 app.use(session({
-  secret: 'secreto', // Puedes cambiar esto a una cadena más segura
+  secret: 'secreto',
   resave: false,
   saveUninitialized: false
 }));
@@ -147,20 +144,14 @@ app.use('/auth', require('./src/routes/auth.router.js'));
 // Implementa las rutas para los usuarios
 app.use('/users', require('./src/routes/users.router.js'));
 
+// Ruta para probar los logs
+app.get('/loggerTest', (req, res) => {
+  // Lógica para probar los logs
+  // ...
+});
+
 // Iniciar el servidor en el puerto 3000
 const PORT = 3000;
 server.listen(PORT, () => {
   console.log(`Servidor iniciado en http://localhost:${PORT}`);
-});
-
-// Configurar la conexión a la base de datos de MongoDB
-const MONGODB_URI ='mongodb+srv://selenabenitez0201:Monedas1@selenabenitezcluster.xhlcgdr.mongodb.net/?retryWrites=true&w=majority';
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log('Conectado a la base de datos MongoDB');
-}).catch((error) => {
-  console.log('Error al conectar a la base de datos:', error);
-  process.exit(1);
 });

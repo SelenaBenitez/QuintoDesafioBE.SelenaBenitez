@@ -1,15 +1,9 @@
-// src/dao/models/message.model.js
-import mongoose from 'mongoose';
-
-const messageSchema = new mongoose.Schema({
-  content: String,
-  sender: String,
-  timestamp: {
-    type: Date,
-    default: Date.now
+class Message {
+  constructor(content, senderId) {
+    this.content = content;
+    this.senderId = senderId;
+    this.timestamp = Date.now();
   }
-});
+}
 
-const MessageModel = mongoose.model('Message', messageSchema);
-
-export default MessageModel;
+export default Message;

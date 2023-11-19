@@ -1,14 +1,11 @@
-// src/routes/auth.router.js
 import { Router } from 'express';
 import passport from 'passport';
-import { userModel } from '../dao/models/user.model.js';
-import LocalStrategy from 'passport-local';
-import GitHubStrategy from 'passport-github2'; // Requiere instalar el paquete 'passport-github2'
 import bcrypt from 'bcrypt';
+import userModel from '../dao/models/user.model.js';
+import GitHubStrategy from 'passport-github2';
+import LocalStrategy from 'passport-local';
 
 const router = Router();
-
-// ... (resto del código)
 
 // Estrategia de inicio de sesión local con Passport
 passport.use('login', new LocalStrategy({
@@ -34,13 +31,11 @@ passport.use('login', new LocalStrategy({
   }
 }));
 
-
-
 // Configurar la estrategia de inicio de sesión con GitHub con Passport
 passport.use('github', new GitHubStrategy({
-  clientID: 'TU_CLIENT_ID', // Reemplazar con tu cliente ID de GitHub
-  clientSecret: 'TU_CLIENT_SECRET', // Reemplazar con tu cliente secret de GitHub
-  callbackURL: 'http://localhost:3000/auth/github/callback' // Ruta para el callback de GitHub
+  clientID: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  callbackURL: 'http://localhost:3000/auth/github/callback'
 }, (accessToken, refreshToken, profile, done) => {
   // Lógica para manejar la autenticación con GitHub
   // ...
@@ -60,6 +55,22 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
+// Nueva ruta para solicitar restablecer la contraseña
+router.get('/recover', (req, res) => {
+  res.render('recover-password'); // Puedes renderizar una vista o enviar una respuesta JSON, según tu preferencia
+});
+
+// Nueva ruta para manejar el envío del formulario de solicitud de restablecimiento
+router.post('/recover', (req, res) => {
+  const email = req.body.email; // Obtiene el correo electrónico proporcionado por el usuario
+
+  // Aquí debes generar el token temporal, enviar el correo y realizar otras operaciones necesarias
+  // ...
+
+  // Envía una respuesta al usuario
+  res.json({ message: 'Se ha enviado un correo con instrucciones para restablecer la contraseña.' });
+});
+
 // Ruta para el inicio de sesión
 router.post('/login', passport.authenticate('login'), (req, res) => {
   res.json({ message: 'Inicio de sesión exitoso' });
@@ -76,9 +87,15 @@ router.get('/github/callback', passport.authenticate('github', {
 
 // Implementa la ruta y lógica para el registro de usuarios con Passport
 router.post('/register', async (req, res) => {
-  // Lógica para registrar un nuevo usuario en la base de datos
-  // ...
-  res.redirect('/login');
+  const { first_name, last_name, email, password } = req.body;
+  try {
+    const user = new userModel({ first_name, last_name, email, password });
+    await user.save();
+    res.redirect('/auth/login');
+  } catch (error) {
+    console.log('Error al registrar usuario:', error);
+    res.status(500).send('Error en el servidor');
+  }
 });
 
 export default router;

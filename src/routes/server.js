@@ -1,14 +1,122 @@
+// src/controllers/socket.controller.js
+import { generateId } from '../utils/generateId.js';
+
+
+
+// Array temporal para almacenar productos
+let products = [];
+
+// Crear un producto y agregarlo al array
+const createProduct = (product) => {
+  const newProduct = { ...product, id: generateId() };
+  products.push(newProduct);
+  return newProduct;
+};
+
+// Obtener todos los productos
+const getAllProducts = () => products;
+
+// Eliminar un producto por su ID
+const deleteProduct = (productId) => {
+  products = products.filter((product) => product.id !== productId);
+  return productId;
+};
+
+export { createProduct, getAllProducts, deleteProduct };
+
+// src/controllers/socket.controller.js
+import generateId from '../utils/generateId.js';
+
+// Manejar eventos de conexión y desconexión de sockets
+const handleSocketConnection = (io, socket) => {
+  console.log('Nuevo cliente conectado');
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado');
+  });
+
+  // Escuchar evento de creación de producto
+  socket.on('createProduct', (product) => {
+    const newProduct = { ...product, id: generateId() };
+    products.push(newProduct);
+    // Emitir evento de actualización de productos a todos los clientes conectados
+    io.emit('updateProducts', products);
+  });
+
+  // Escuchar evento de eliminación de producto
+  socket.on('deleteProduct', (productId) => {
+    products = products.filter((product) => product.id !== productId);
+    // Emitir evento de actualización de productos a todos los clientes conectados
+    io.emit('updateProducts', products);
+  });
+};
+
+export { handleSocketConnection };
+
+// src/routes/product.router.js
 import express from 'express';
-import userRouter from './routes/users.router.js';
-import authRouter from './routes/auth.router.js';
-import mongoose from 'mongoose';
+import * as ProductController from '../controllers/product.controller.js';
+
+
+// Ruta para obtener todos los productos
+router.get('/products', (req, res) => {
+  const products = ProductController.getAllProducts();
+  res.json(products);
+});
+
+// Ruta para crear un nuevo producto
+router.post('/products', (req, res) => {
+  const { name, price } = req.body;
+  const newProduct = ProductController.createProduct({ name, price });
+  res.json(newProduct);
+});
+
+// Ruta para eliminar un producto por su ID
+router.delete('/products/:id', (req, res) => {
+  const productId = req.params.id;
+  const deletedProductId = ProductController.deleteProduct(productId);
+  res.json({ message: 'Producto eliminado con éxito', productId: deletedProductId });
+});
+
+
+// src/routes/socket.router.js
+import express from 'express';
+import { Server } from 'socket.io';
+import * as SocketController from '../controllers/socket.controller.js';
+
+const router = express.Router();
+
+// Configurar eventos de conexión y desconexión de sockets
+router.io = (server) => {
+  const io = new Server(server);
+  io.on('connection', (socket) => {
+    SocketController.handleSocketConnection(io, socket);
+  });
+};
+
+export default router;
+
+// src/utils/generateId.js
+const generateId = () => (
+  Math.random().toString(36).substring(2, 15) +
+  Math.random().toString(36).substring(2, 15)
+);
+
+export { generateId };
+
+// server.js
+import express from 'express';
 import http from 'http';
 import socketIO from 'socket.io';
 import handlebars from 'express-handlebars';
+import dotenv from 'dotenv';
+import productRouter from './routes/product.router.js';
+import socketRouter from './routes/socket.router.js';
+
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
 
 // Configurar el motor de plantillas Handlebars
 app.engine('handlebars', handlebars());
@@ -22,89 +130,20 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Array para almacenar los productos
-let products = [];
+// Configurar las rutas de productos y sockets
+app.use('/api', productRouter);
+app.use('/sockets', socketRouter);
 
-// Configurar eventos de conexión y desconexión de websockets
-io.on('connection', (socket) => {
-  console.log('Nuevo cliente conectado');
-
-  socket.on('disconnect', () => {
-    console.log('Cliente desconectado');
-  });
-
-  // Escuchar evento de creación de producto
-  socket.on('createProduct', (product) => {
-    // Lógica para crear el producto
-    const newProduct = { ...product, id: generateId() };
-    products.push(newProduct);
-    // Emitir evento de actualización de productos a todos los clientes conectados
-    io.emit('updateProducts', products);
-  });
-
-  // Escuchar evento de eliminación de producto
-  socket.on('deleteProduct', (productId) => {
-    // Lógica para eliminar el producto
-    products = products.filter((product) => product.id !== productId);
-    // Emitir evento de actualización de productos a todos los clientes conectados
-    io.emit('updateProducts', products);
-  });
-});
+// Configurar eventos de conexión y desconexión de sockets
+socketRouter.io(server);
 
 // Ruta para la vista home
 app.get('/', (req, res) => {
-  res.render('home', { products });
+  res.render('home', { products: [] }); // En este ejemplo, la vista home no muestra productos
 });
-
-// Ruta para la vista realTimeProducts
-app.get('/realtimeproducts', (req, res) => {
-  res.render('realTimeProducts', { products });
-});
-
-// Ruta para la creación de producto desde HTTP
-app.post('/products', (req, res) => {
-  const { name, price } = req.body;
-  const newProduct = { name, price, id: generateId() };
-  products.push(newProduct);
-  io.emit('updateProducts', products);
-  res.redirect('/realtimeproducts');
-});
-
-// Ruta para la eliminación de producto desde HTTP
-app.delete('/products/:id', (req, res) => {
-  const productId = req.params.id;
-  products = products.filter((product) => product.id !== productId);
-  io.emit('updateProducts', products);
-  res.redirect('/realtimeproducts');
-});
-
-// Generar un ID único para los productos
-function generateId() {
-  return (
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
-  );
-}
-
-// Configurar las rutas de usuarios
-app.use('/api/users', userRouter);
-
-// Configurar las rutas de autenticación
-app.use('/api/auth', authRouter);
 
 // Iniciar el servidor en el puerto 3000
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor iniciado en http://localhost:${PORT}`);
 });
-
-// Configurar la conexión a la base de datos de MongoDB
-const MONGODB_URI =
-  'mongodb://localhost:27017/ecommmerce';
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Conectado a la base de datos');
-  })
-  .catch((error) => {
-    console.log('Error al conectar a la base de datos:', error);
-  });
